@@ -68,6 +68,25 @@
             color: #007bff; /* Màu xanh blue */
             font-weight: bold;
         }
+        
+        /* CSS MỚI cho hiệu ứng fade-in */
+        #qr-guide-container {
+            /* Thuộc tính ban đầu: ẩn và trong suốt */
+            opacity: 0; 
+            visibility: hidden; 
+            transition: opacity 1s ease-in-out, visibility 1s; /* Thiết lập chuyển đổi mượt mà */
+            text-align: center; 
+            margin-top: 40px; 
+            padding-top: 20px; 
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        /* Class sẽ được thêm bằng JS để hiển thị */
+        #qr-guide-container.fade-in-show {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Hết CSS MỚI */
     </style>
 </head>
 <body>
@@ -200,7 +219,22 @@
             searchData(searchType); 
         }
     });
+
+    // *** JAVASCRIPT MỚI: Kích hoạt hiệu ứng Fade-in sau khi tải xong trang ***
+    document.addEventListener('DOMContentLoaded', function() {
+        const qrContainer = document.getElementById('qr-guide-container');
+        // Trì hoãn một chút (300ms) để đảm bảo các thành phần khác đã sẵn sàng
+        setTimeout(() => {
+            qrContainer.classList.add('fade-in-show');
+        }, 300); 
+    });
+    // *** Hết JAVASCRIPT MỚI ***
 </script>
 
+    <div id="qr-guide-container">
+        <h2>Hướng Dẫn Nộp Thuế Sử Dụng Đất Phi Nông Nghiệp Phương Thức Điện Tử</h2>
+        <img src="image_128375.png" alt="Đề nghị NNT quét mã QR để cài đặt và thực hiện nộp thuế sử dụng đất phi nông nghiệp phương thức điện tử" style="max-width: 100%; height: auto; display: block; margin: 20px auto;">
+    </div>
+    
 </body>
 </html>
