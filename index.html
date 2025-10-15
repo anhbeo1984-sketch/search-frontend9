@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tìm Kiếm Cơ Sở Dữ Liệu Tốc Độ Cao</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        
+        /* Cải tiến Input/Button */
+        #search-form { margin-bottom: 25px; display: flex; gap: 10px; }
+        #key-input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; flex-grow: 1; font-size: 16px; }
+        #search-form button { padding: 10px 20px; border: none; border-radius: 5px; background-color: #007bff; color: white; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
+        #search-form button:hover { background-color: #0056b3; }
+
+        h1 { color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 30px; }
+
+        #results-container { 
+            /* Bỏ viền cũ, dùng hiệu ứng shadow nhẹ */
+            min-height: 50px; 
+            white-space: pre-wrap;
+        }
+
+        /* Container cho mỗi dòng dữ liệu tìm được */
+        .result-block {
+            margin-top: 15px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 8px; 
+            overflow: hidden; /* Dùng cho hiệu ứng xen kẽ */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Tiêu đề dòng */
+        .result-block h5 {
+            background-color: #e9ecef; /* Nền xám nhạt */
+            color: #333;
+            padding: 10px 15px;
+            margin: 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 1em;
+        }
+
+        /* Container cho mỗi cặp Label: Value */
+        .result-item {
+            display: flex;
+            padding: 8px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        /* Hiệu ứng xen kẽ màu nền cho các trường */
+        .result-item:nth-child(even) {
+            background-color: #f8f8ff; /* Màu trắng/xanh nhạt cho dòng chẵn */
+        }
+        .result-item:last-child {
+            border-bottom: none; /* Bỏ border ở cuối block */
+        }
+
+        .result-label { 
+            font-weight: 600; 
+            color: #495057; 
+            min-width: 250px; /* Tăng khoảng cách tối thiểu cho nhãn */
+            width: 30%;
+            display: inline-block; 
+        } 
+
+        /* Thêm style cho các giá trị tiền tệ */
+        .currency-value {
+            color: #007bff; /* Màu xanh blue */
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tìm Kiếm Dữ Liệu Thuế Phi Nông Nghiệp Phường Bồ Đề</h1>
+
+    <div id="search-form">
+        <input type="text" id="key-input" placeholder="Nhập CCCD hoặc Mã số thuế" required>
+        
+        <button onclick="searchData('cccd')">Tìm theo CCCD</button>
+        <button onclick="searchData('mst')">Tìm theo MST</button>
+    </div>
+
+    <h2>Kết Quả:</h2>
+    <div id="results-container">
+        Vui lòng nhập CCCD hoặc Mã số thuế và chọn phương thức tìm kiếm.
+    </div>
+
+ <script>
+    // *** 1. CẬP NHẬT URL API CƠ SỞ ***
+    // Bỏ /search ở cuối vì chúng ta sẽ thêm /cccd hoặc /mst sau
+    const BASE_API_URL = "https://my-fast-search-api.onrender.com/search"; 
+    
+    // ... (Giữ nguyên CURRENCY_FIELDS và formatCurrency) ...
+    const CURRENCY_FIELDS = [
+        "Giá đất tính thuế",
+        "Số thuế phải nộp 2025",
+        "Số thừa thiếu kỳ trước chuyển sang",
+        "Số thuế đã nộp trong kỳ",
+        "Số thuế được miễn, giảm năm 2025",
+        "Tổng số thuế còn phải nộp năm 2025",
+        "Số tiền chậm nộp đến 31/12/2024 (chưa cộng vào Tổng số thuế còn phải nộp năm 2025)",
+        "Tổng số tiền phải nộp (bao gồm cả tiền chậm nộp)"
+    ];
+
+    function formatCurrency(value) {
+        let numericValue = Number(value);
+        if (!isNaN(numericValue) && numericValue !== null && numericValue !== undefined) {
+            return numericValue.toLocaleString('vi-VN') + " VND";
+        }
+        return value; 
+    }
+    
+    // *** HÀM searchData() CÓ THÊM THAM SỐ 'searchType' ***
+    async function searchData(searchType) {
+        const key = document.getElementById('key-input').value.trim();
+        const resultsContainer = document.getElementById('results-container');
+        const keyLabel = (searchType === 'cccd') ? 'CCCD' : 'Mã số thuế';
+        
+        if (!key) {
+            resultsContainer.innerHTML = `Vui lòng nhập ${keyLabel} để tìm kiếm.`;
+            return;
+        }
+
+        resultsContainer.innerHTML = "Đang tìm kiếm...";
+
+        try {
+            // DÙNG BASE_API_URL VÀ NỐI ENDPOINT CỤ THỂ
+            const url = `${BASE_API_URL}/${searchType}?key=${encodeURIComponent(key)}`;
+
+            const response = await fetch(url);
+            const data = await response.json(); 
+
+            if (data.status === "success") {
+                const resultsArray = data.data; 
+                let htmlOutput = "";
+                
+                if (resultsArray.length === 0) {
+                    htmlOutput = "Không tìm thấy dữ liệu phù hợp.";
+                } else {
+                    htmlOutput += `<h4 style="color: #007bff;">Tìm thấy ${resultsArray.length} kết quả với ${keyLabel} "${key}".</h4>`;
+                    
+                    resultsArray.forEach((result, index) => {
+                        htmlOutput += `<div class="result-block">`;
+                        htmlOutput += `<h5>--- Dòng Dữ liệu #${index + 1} ---</h5>`;
+                        
+                        for (const header in result) {
+                            let displayValue = result[header];
+                            let formattedOutput = '';
+                            let isCurrency = CURRENCY_FIELDS.includes(header.trim());
+                            
+                            if (isCurrency) {
+                                displayValue = formatCurrency(result[header]);
+                            }
+                            
+                            if (isCurrency) {
+                                formattedOutput = `<span class="currency-value">${displayValue}</span>`;
+                            } else {
+                                formattedOutput = displayValue; 
+                            }
+
+                            htmlOutput += `<div class="result-item"><span class="result-label">${header}:</span> ${formattedOutput}</div>`;
+                        }
+                        htmlOutput += `</div>`;
+                    });
+                }
+
+                resultsContainer.innerHTML = htmlOutput;
+                
+            } else if (data.status === "not_found") {
+                resultsContainer.innerHTML = `<span style="color: #ffc107;">⚠️</span> Không tìm thấy ${keyLabel}: <b>${key}</b>`;
+            } else if (data.status === "error" || data.status === "fatal_error") {
+                resultsContainer.innerHTML = `<span style="color: #dc3545;">❌ Lỗi:</span> ${data.message}`;
+            } else {
+                resultsContainer.innerHTML = `⚠️ Lỗi không xác định.`;
+            }
+
+        } catch (error) {
+            resultsContainer.innerHTML = `❌ Lỗi kết nối (Đảm bảo server Flask đang chạy!): ${error.message}`;
+            console.error('Lỗi Fetch/JSON Parse:', error);
+        }
+    }
+    
+    // *** LOGIC ENTER THÔNG MINH MỚI ***
+    document.getElementById('key-input').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') { 
+            event.preventDefault(); 
+            
+            const keyLength = this.value.trim().length;
+            let searchType;
+
+            if (keyLength === 10) {
+                // Độ dài 10 ký tự -> Mặc định tìm theo Mã số thuế (MST)
+                searchType = 'mst';
+            } else {
+                // Độ dài khác 10 ký tự -> Mặc định tìm theo CCCD
+                searchType = 'cccd';
+            }
+
+            searchData(searchType); 
+        }
+    });
+</script>
+
+</body>
+</html>
